@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-dotenv
+langchain
+openai
+PyGithub
+redis
+supabase
+
+pytest
+httpx
+langchain-openai
+tree-sitter-languages
