@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
 import QASection from '../../components/QASection';
@@ -28,7 +28,9 @@ describe('QASection', () => {
       data: { suggestions: mockSuggestions }
     });
 
-    render(<QASection repoName="test/repo" />);
+    await act(async () => {
+      render(<QASection repoName="test/repo" />);
+    });
     
     expect(screen.getByText('💬 AI와 대화하기')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('궁금한 것을 질문해보세요...')).toBeInTheDocument();
@@ -78,7 +80,7 @@ describe('QASection', () => {
     });
 
     expect(vi.mocked(axios.post)).toHaveBeenCalledWith(
-      'http://localhost:8000/api/ask',
+      '/api/ask',
       {
         question: 'Test question',
         repo_name: 'test/repo'
@@ -129,7 +131,7 @@ describe('QASection', () => {
     });
 
     expect(vi.mocked(axios.post)).toHaveBeenCalledWith(
-      'http://localhost:8000/api/ask',
+      '/api/ask',
       {
         question: 'What is this project?',
         repo_name: 'test/repo'
@@ -140,7 +142,9 @@ describe('QASection', () => {
   it('disables button when question is empty', async () => {
     vi.mocked(axios.get).mockResolvedValue({ data: { suggestions: [] } });
 
-    render(<QASection repoName="test/repo" />);
+    await act(async () => {
+      render(<QASection repoName="test/repo" />);
+    });
     
     const button = screen.getByRole('button', { name: '질문하기' });
     expect(button).toBeDisabled();

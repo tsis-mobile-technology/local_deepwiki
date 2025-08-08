@@ -1,13 +1,27 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from app.main import app
 
 class TestIntegration:
     
     @pytest.fixture
     def client(self):
-        return TestClient(app)
+        # Mock all external services and main app dependencies
+        with patch('app.services.vector_service.create_client'), \
+             patch('app.services.vector_service.OpenAIEmbeddings'), \
+             patch('app.services.github_service.httpx.AsyncClient'), \
+             patch('app.services.llm_service.ChatOpenAI'), \
+             patch('app.main.supabase') as mock_supabase:
+            
+            # Setup default Supabase responses
+            mock_response = MagicMock()
+            mock_response.data = [{'id': 'test-id'}]
+            mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_response
+            mock_supabase.table.return_value.insert.return_value.execute.return_value = mock_response
+            mock_supabase.table.return_value.update.return_value.eq.return_value.execute.return_value = mock_response
+            
+            return TestClient(app)
 
     def test_full_api_workflow(self, client):
         """Test the complete API workflow"""
@@ -16,9 +30,18 @@ class TestIntegration:
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
 
+    @patch('app.main.supabase')
     @patch('app.main.run_analysis_pipeline')
-    def test_analyze_endpoint_integration(self, mock_pipeline, client):
+    def test_analyze_endpoint_integration(self, mock_pipeline, mock_supabase, client):
         """Test analyze endpoint integration"""
+        # Mock the pipeline to return successfully
+        mock_pipeline.return_value = None  # Background task
+        
+        # Mock Supabase insert for task creation
+        mock_response = MagicMock()
+        mock_response.data = [{'id': 'test-task-123'}]
+        mock_supabase.table.return_value.insert.return_value.execute.return_value = mock_response
+        
         response = client.post("/api/analyze", json={
             "repo_url": "https://github.com/test/repo"
         })
@@ -28,14 +51,34 @@ class TestIntegration:
         assert "task_id" in data
         mock_pipeline.assert_called_once()
 
-    def test_get_result_not_found(self, client):
+    @patch('app.main.supabase')
+    @patch('app.main.cache_service')
+    def test_get_result_not_found(self, mock_cache, mock_supabase, client):
         """Test get result for non-existent task"""
+        # Mock cache to return None for non-existent task
+        mock_cache.get.return_value = None
+        
+        # Mock Supabase to return empty result
+        mock_response = MagicMock()
+        mock_response.data = []
+        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_response
+        
         response = client.get("/api/result/non-existent-id")
         assert response.status_code == 404
         assert response.json()["detail"] == "Task not found"
 
-    def test_get_architecture_not_found(self, client):
+    @patch('app.main.supabase')
+    @patch('app.main.cache_service')
+    def test_get_architecture_not_found(self, mock_cache, mock_supabase, client):
         """Test get architecture for non-existent task"""
+        # Mock cache to return None for non-existent task
+        mock_cache.get.return_value = None
+        
+        # Mock Supabase to return empty result
+        mock_response = MagicMock()
+        mock_response.data = []
+        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = mock_response
+        
         response = client.get("/api/architecture/non-existent-id")
         assert response.status_code == 404
         assert response.json()["detail"] == "Task not found"
@@ -43,11 +86,12 @@ class TestIntegration:
     @patch('app.main.qa_service')
     def test_ask_endpoint_integration(self, mock_qa_service, client):
         """Test ask endpoint integration"""
-        mock_qa_service.answer_question.return_value = {
+        # Mock async method properly
+        mock_qa_service.answer_question = AsyncMock(return_value={
             "success": True,
             "answer": "Test answer",
             "sources": []
-        }
+        })
         
         response = client.post("/api/ask", json={
             "question": "What does this project do?",
@@ -62,10 +106,11 @@ class TestIntegration:
     @patch('app.main.qa_service')
     def test_suggestions_endpoint_integration(self, mock_qa_service, client):
         """Test suggestions endpoint integration"""
-        mock_qa_service.get_suggested_questions.return_value = [
+        # Mock async method properly
+        mock_qa_service.get_suggested_questions = AsyncMock(return_value=[
             "What is this project?",
             "How to install?"
-        ]
+        ])
         
         response = client.get("/api/suggestions/test-repo")
         

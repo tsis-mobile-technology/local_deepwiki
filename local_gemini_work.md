@@ -93,7 +93,7 @@ GitHub 리포지토리 URL을 입력받아, AI가 코드베이스를 심층 분�
     - [X] **Backend**: `pytest`를 사용하여 주요 서비스 로직 및 API 엔드포인트에 대한 단위/통합 테스트 작성.
     - [X] **Frontend**: `Vitest`와 `React Testing Library`를 사용하여 컴포넌트 테스트 작성.
     - [X] GitHub Actions를 사용하여 main 브랜치에 push/merge 시 자동으로 테스트 및 빌드를 수행하는 CI(Continuous Integration) 파이프라인 구축.
-- [ ] **3. 배포**
-    - [ ] 클라우드 서버(예: AWS EC2, GCP Compute Engine)에 Docker 환경을 구성하고 `docker-compose`를 통해 애플리케이션 배포.
-    - [ ] Nginx를 리버스 프록시로 설정하여 API 요청은 FastAPI로, 정적 파일 요청은 React 빌드 결과로 라우팅.
-    - [ ] 도메인 연결 및 HTTPS를 위한 SSL 인증서(Let's Encrypt) 설정.
+- [X] **3. 배포**
+    - [X] 클라우드 서버(예: AWS EC2, GCP Compute Engine)에 Docker 환경을 구성하고 `docker-compose`를 통해 애플리케이션 배포.
+    - [X] Nginx를 리버스 프록시로 설정하여 API 요청은 FastAPI로, 정적 파일 요청은 React 빌드 결과로 라우팅.
+    - [X] 도메인 연결 및 HTTPS를 위한 SSL 인증서(Let's Encrypt) 설정.

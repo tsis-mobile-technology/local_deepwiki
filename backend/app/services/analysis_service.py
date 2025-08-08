@@ -1,49 +1,93 @@
-from tree_sitter import Parser
-from tree_sitter_languages import get_language, get_parser
+try:
+    from tree_sitter import Parser, Language
+    import tree_sitter_python as tspython  
+    import tree_sitter_javascript as tsjavascript
+    import tree_sitter_typescript as tstypescript
+    TREE_SITTER_AVAILABLE = True
+except ImportError:
+    TREE_SITTER_AVAILABLE = False
 from typing import Dict, Any, List
+import os
+
+from app.services.github_service import GitHubService
+
+from app.config import settings
 
 class AnalysisService:
-    def __init__(self):
+    def __init__(self, github_service: GitHubService):
+        self.github_service = github_service
         self.parsers = {}
         self.languages = {}
+        self._load_parsers()
+
+    def _load_parsers(self):
+        if not TREE_SITTER_AVAILABLE:
+            print("Warning: Tree-sitter not available. Using fallback analysis.")
+            return
+            
         try:
-            self.parsers['python'] = get_parser('python')
-            self.languages['python'] = get_language('python')
-            self.parsers['javascript'] = get_parser('javascript') 
-            self.languages['javascript'] = get_language('javascript')
-            self.parsers['typescript'] = get_parser('typescript')
-            self.languages['typescript'] = get_language('typescript')
+            # Python parser
+            self.languages['python'] = Language(tspython.language())
+            self.parsers['python'] = Parser(self.languages['python'])
         except Exception as e:
-            print(f"Warning: Could not load Tree-sitter parsers/languages. Analysis features may be limited: {e}")
+            print(f"Warning: Could not load Tree-sitter parser for python: {e}")
+            
+        try:
+            # JavaScript parser  
+            self.languages['javascript'] = Language(tsjavascript.language())
+            self.parsers['javascript'] = Parser(self.languages['javascript'])
+        except Exception as e:
+            print(f"Warning: Could not load Tree-sitter parser for javascript: {e}")
+            
+        try:
+            # TypeScript parser
+            self.languages['typescript'] = Language(tstypescript.language())
+            self.parsers['typescript'] = Parser(self.languages['typescript'])
+        except Exception as e:
+            print(f"Warning: Could not load Tree-sitter parser for typescript: {e}")
 
     def analyze_code(self, content: str, language: str) -> Dict[str, Any]:
         if language not in self.parsers:
-            return {"error": f"Language '{language}' is not supported."}
+            return {"error": f"Language '{language}' is not supported or failed to load."}
         
-        parser = self.parsers[language]
-        tree = parser.parse(bytes(content, "utf8"))
-        root_node = tree.root_node
+        try:
+            parser = self.parsers[language]
+            tree = parser.parse(bytes(content, "utf8"))
+            root_node = tree.root_node
 
-        analysis = {
-            "imports": self._find_imports(root_node, language),
-            "classes": self._find_classes(root_node, language),
-            "functions": self._find_functions(root_node, language),
-        }
-        return analysis
+            analysis = {
+                "imports": self._find_imports(root_node, language),
+                "classes": self._find_classes(root_node, language),
+                "functions": self._find_functions(root_node, language),
+            }
+            return analysis
+        except Exception as e:
+            print(f"Error analyzing code: {e}")
+            return {"error": f"Failed to analyze {language} code: {str(e)}"}
 
-    def _execute_query(self, node, language, query_string) -> List[Dict]:
+    def _execute_query(self, node, language, query_string) -> List:
         lang_obj = self.languages[language]
         query = lang_obj.query(query_string)
         captures = query.captures(node)
         return captures
 
     def _find_imports(self, node, language) -> List[str]:
-        query_string = "(import_statement) @import" if language == 'python' else "(import_statement) @import"
+        if language == 'python':
+            query_string = "(import_statement) @import"
+        elif language in ['javascript', 'typescript']:
+            query_string = "(import_statement) @import"
+        else:
+            query_string = "(import_statement) @import"
         captures = self._execute_query(node, language, query_string)
         return [c[0].text.decode('utf8') for c in captures]
 
     def _find_classes(self, node, language) -> List[Dict]:
-        query_string = "(class_definition) @class" if language == 'python' else "(class_declaration) @class"
+        if language == 'python':
+            query_string = "(class_definition) @class"
+        elif language in ['javascript', 'typescript']:
+            query_string = "(class_declaration) @class"
+        else:
+            query_string = "(class_declaration) @class"
         captures = self._execute_query(node, language, query_string)
         classes = []
         for c in captures:
@@ -57,7 +101,12 @@ class AnalysisService:
         return classes
 
     def _find_functions(self, node, language) -> List[Dict]:
-        query_string = "(function_definition) @function" if language == 'python' else "(function_declaration) @function"
+        if language == 'python':
+            query_string = "(function_definition) @function"
+        elif language in ['javascript', 'typescript']:
+            query_string = "(function_declaration) @function"
+        else:
+            query_string = "(function_declaration) @function"
         captures = self._execute_query(node, language, query_string)
         functions = []
         for c in captures:
@@ -81,7 +130,7 @@ class AnalysisService:
                 if "error" in analysis:
                     continue
                     
-                file_type = self._get_file_type(file_path)
+                file_type = self.github_service._get_file_type(file_path)
                 component_name = self._extract_component_name(file_path)
                 
                 # 컴포넌트 정보 수집
@@ -121,26 +170,7 @@ class AnalysisService:
             print(f"Error analyzing project architecture: {e}")
             return {"error": str(e)}
 
-    def _get_file_type(self, file_path: str) -> str:
-        """파일 경로를 기반으로 컴포넌트 타입 결정"""
-        if '/test' in file_path or file_path.endswith('_test.py'):
-            return 'test'
-        elif '/models/' in file_path or '/model/' in file_path:
-            return 'model'
-        elif '/views/' in file_path or '/view/' in file_path:
-            return 'view'
-        elif '/controllers/' in file_path or '/controller/' in file_path:
-            return 'controller'
-        elif '/services/' in file_path or '/service/' in file_path:
-            return 'service'
-        elif '/utils/' in file_path or '/util/' in file_path:
-            return 'utility'
-        elif '/config/' in file_path or file_path.endswith('config.py'):
-            return 'config'
-        elif 'main.py' in file_path or 'app.py' in file_path:
-            return 'main'
-        else:
-            return 'component'
+    
 
     def _extract_component_name(self, file_path: str) -> str:
         """파일 경로에서 컴포넌트 이름 추출"""
@@ -152,6 +182,46 @@ class AnalysisService:
         try:
             import_stmt = import_stmt.strip()
             
+            # JavaScript/TypeScript import 처리
+            if 'import' in import_stmt and ('from' in import_stmt or import_stmt.startswith('import')):
+                # JavaScript/TypeScript style imports
+                if 'from' in import_stmt:
+                    # import { something } from 'module'
+                    parts = import_stmt.split('from')
+                    if len(parts) >= 2:
+                        module = parts[-1].strip().strip('\'"')
+                        if module.startswith('./') or module.startswith('../'):
+                            return {
+                                "target": "local_module",
+                                "type": "relative"
+                            }
+                        else:
+                            return {
+                                "target": module.split('/')[0],
+                                "type": "external" if self._is_external_js_module(module) else "internal"
+                            }
+                elif import_stmt.startswith('import ') and not import_stmt.startswith('import {'):
+                    # import module from 'module' or import 'module'
+                    if 'from' in import_stmt:
+                        parts = import_stmt.split('from')
+                        if len(parts) >= 2:
+                            module = parts[-1].strip().strip('\'"')
+                    else:
+                        # import 'module'
+                        module = import_stmt[7:].strip().strip('\'"')
+                    
+                    if module.startswith('./') or module.startswith('../'):
+                        return {
+                            "target": "local_module", 
+                            "type": "relative"
+                        }
+                    else:
+                        return {
+                            "target": module.split('/')[0],
+                            "type": "external" if self._is_external_js_module(module) else "internal"
+                        }
+            
+            # Python import 처리
             # 상대 import 처리
             if import_stmt.startswith('from .') or import_stmt.startswith('import .'):
                 return {
@@ -184,13 +254,11 @@ class AnalysisService:
 
     def _is_external_module(self, module_name: str) -> bool:
         """외부 모듈인지 확인"""
-        external_modules = {
-            'os', 'sys', 'json', 'datetime', 'time', 'requests', 'urllib',
-            'fastapi', 'pydantic', 'sqlalchemy', 'redis', 'asyncio',
-            'typing', 'logging', 'pathlib', 'collections', 'itertools',
-            'functools', 'unittest', 'pytest', 'numpy', 'pandas'
-        }
-        return module_name.lower() in external_modules
+        return module_name.lower() in settings.PYTHON_EXTERNAL_MODULES
+
+    def _is_external_js_module(self, module_name: str) -> bool:
+        """JavaScript/TypeScript 외부 모듈인지 확인"""
+        return module_name.lower() in settings.JS_EXTERNAL_MODULES
 
     def _analyze_project_structure(self, components: Dict) -> Dict:
         """프로젝트 구조 분석"""

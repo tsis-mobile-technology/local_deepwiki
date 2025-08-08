@@ -8,7 +8,7 @@ describe('RepoInputForm', () => {
     render(<RepoInputForm onSubmit={mockOnSubmit} />);
     
     expect(screen.getByPlaceholderText('Enter GitHub repository URL')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Analyze' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '🔍 Analyze' })).toBeInTheDocument();
   });
 
   it('calls onSubmit with input value when form is submitted', () => {
@@ -16,7 +16,7 @@ describe('RepoInputForm', () => {
     render(<RepoInputForm onSubmit={mockOnSubmit} />);
     
     const input = screen.getByPlaceholderText('Enter GitHub repository URL');
-    const button = screen.getByRole('button', { name: 'Analyze' });
+    const button = screen.getByRole('button', { name: '🔍 Analyze' });
     
     fireEvent.change(input, { target: { value: 'https://github.com/test/repo' } });
     fireEvent.click(button);
@@ -39,7 +39,7 @@ describe('RepoInputForm', () => {
     const mockOnSubmit = vi.fn();
     render(<RepoInputForm onSubmit={mockOnSubmit} />);
     
-    const form = screen.getByRole('button', { name: 'Analyze' }).closest('form');
+    const form = screen.getByRole('button', { name: '🔍 Analyze' }).closest('form');
     const mockPreventDefault = vi.fn();
     
     fireEvent.submit(form!, { preventDefault: mockPreventDefault });

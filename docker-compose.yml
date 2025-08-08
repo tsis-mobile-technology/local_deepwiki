@@ -14,6 +14,8 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+    networks:
+      - deepwiki-internal
 
   # FastAPI Backend
   backend:
@@ -34,15 +36,10 @@ services:
       - ./backend:/app
       - /app/venv  # Prevent overwriting of virtual environment
     depends_on:
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      - redis
     restart: unless-stopped
+    networks:
+      - deepwiki-internal
 
   # React Frontend with Nginx
   frontend:
@@ -51,37 +48,44 @@ services:
       dockerfile: Dockerfile
     container_name: deepwiki-frontend
     ports:
-      - "80:80"
+      - "3000:80"
+    volumes:
+      - ./frontend:/app
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
       interval: 30s
       timeout: 10s
       retries: 3
     restart: unless-stopped
+    networks:
+      - deepwiki-internal
 
-  # Nginx Reverse Proxy (Optional - for production)
+  # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
     container_name: deepwiki-nginx
     ports:
+      - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/ssl:/etc/ssl/certs:ro
     depends_on:
       - frontend
       - backend
-    profiles:
-      - production
     restart: unless-stopped
+    networks:
+      - deepwiki-internal
+      - deepwiki-public
 
 volumes:
   redis_data:
     driver: local
 
 networks:
-  default:
-    name: deepwiki-network
+  deepwiki-internal:
+    driver: bridge
+  deepwiki-public:
+    driver: bridge

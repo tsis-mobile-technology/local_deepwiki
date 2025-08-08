@@ -61,7 +61,8 @@ describe('ArchitectureDiagram', () => {
   it('shows error message when no architecture data', () => {
     render(<ArchitectureDiagram architectureData={{ components: {}, dependencies: [], structure: { layers: [], patterns: [], complexity: 'low' }, metrics: { total_components: 0, total_dependencies: 0, dependency_density: 0, most_depended_component: 'none' } }} />);
     
-    expect(screen.getByText('아키텍처 분석 데이터를 로드할 수 없습니다.')).toBeInTheDocument();
+    expect(screen.getByText('No Architecture Data Available')).toBeInTheDocument();
+    expect(screen.getByText(/This repository appears to be simple/)).toBeInTheDocument();
   });
 
   it('toggles between diagram types', () => {

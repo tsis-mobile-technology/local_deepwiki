@@ -4,11 +4,26 @@ import CodeBlock from '../../components/CodeBlock';
 
 // Mock react-syntax-highlighter
 vi.mock('react-syntax-highlighter', () => ({
-  PrismLight: ({ children, ...props }: any) => (
-    <pre data-testid="syntax-highlighter" {...props}>
-      <code>{children}</code>
-    </pre>
-  ),
+  PrismLight: ({ children, className, style, language, ...otherProps }: any) => {
+    // Filter out React-specific props to avoid DOM warnings
+    const domProps = Object.fromEntries(
+      Object.entries(otherProps).filter(([key]) => 
+        !['PreTag', 'customStyle', 'showLineNumbers', 'wrapLines'].includes(key)
+      )
+    );
+    
+    return (
+      <pre 
+        data-testid="syntax-highlighter" 
+        className={className}
+        style={style}
+        data-language={language}
+        {...domProps}
+      >
+        <code>{children}</code>
+      </pre>
+    );
+  },
 }));
 
 vi.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({

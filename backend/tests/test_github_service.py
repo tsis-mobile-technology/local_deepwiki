@@ -1,44 +1,59 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, AsyncMock, MagicMock
 from app.services.github_service import GitHubService
-from github import Auth
 
-@patch('app.services.github_service.Github')
 @pytest.mark.asyncio
-async def test_get_repository_structure(MockGithub):
-    """Tests the repository structure analysis with a mocked GitHub API."""
-    mock_github_instance = MockGithub.return_value
+@patch('app.services.github_service.httpx.AsyncClient')
+async def test_get_repository_structure(MockAsyncClient):
+    """Tests the repository structure analysis with properly configured async mocks."""
     
-    mock_repo = MagicMock()
-    mock_repo.name = "test-repo"
-    mock_repo.description = "A test repository"
-    mock_repo.language = "Python"
-    mock_repo.get_topics.return_value = ["test", "ai"]
-    mock_repo.default_branch = "main"
+    # Create mock client instance
+    mock_client_instance = AsyncMock()
+    MockAsyncClient.return_value = mock_client_instance
+    
+    # Create mock responses with proper structure
+    mock_repo_response = MagicMock()
+    mock_repo_response.status_code = 200
+    mock_repo_response.json = AsyncMock(return_value={
+        "name": "test-repo",
+        "description": "A test repository",
+        "language": "Python",
+        "topics": ["test", "ai"],
+        "default_branch": "main"
+    })
+    mock_repo_response.raise_for_status = MagicMock()
 
-    mock_branch = MagicMock()
-    mock_commit = MagicMock()
-    mock_commit.sha = "abcdef123456"
-    mock_branch.commit = mock_commit
-    mock_repo.get_branch.return_value = mock_branch
+    mock_branch_response = MagicMock()
+    mock_branch_response.status_code = 200
+    mock_branch_response.json = AsyncMock(return_value={
+        "commit": {"sha": "abcdef123456"}
+    })
+    mock_branch_response.raise_for_status = MagicMock()
 
-    mock_file = MagicMock()
-    mock_file.path = "src/main.py"
-    mock_file.type = "file"
-    mock_file.size = 1024
-    mock_file.sha = "fedcba654321"
-    mock_repo.get_contents.side_effect = [[mock_file], []]
+    mock_tree_response = MagicMock()
+    mock_tree_response.status_code = 200
+    mock_tree_response.json = AsyncMock(return_value={
+        "tree": [
+            {"path": "src/main.py", "type": "blob", "size": 1024, "sha": "fedcba654321"}
+        ]
+    })
+    mock_tree_response.raise_for_status = MagicMock()
 
-    mock_github_instance.get_repo.return_value = mock_repo
+    # Configure the get method to return awaitable responses
+    mock_client_instance.get = AsyncMock(side_effect=[
+        mock_repo_response,
+        mock_branch_response,
+        mock_tree_response
+    ])
 
     service = GitHubService(github_token="fake_token")
-
     structure = await service.get_repository_structure("owner/repo")
 
+    # Verify results
     assert structure["name"] == "test-repo"
     assert structure["main_language"] == "Python"
     assert "src/main.py" in structure["files"]
     assert structure["commit_hash"] == "abcdef123456"
     
-    MockGithub.assert_called_once()
-    mock_github_instance.get_repo.assert_called_once_with("owner/repo")
+    # Verify method calls
+    assert mock_client_instance.get.call_count == 3

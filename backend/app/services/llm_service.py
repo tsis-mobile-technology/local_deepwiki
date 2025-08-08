@@ -1,7 +1,5 @@
-import os
-import re
+from typing import Dict, Any
 import json
-from typing import Dict, List, Any
 
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
@@ -11,7 +9,7 @@ class LLMService:
     def __init__(self, openai_api_key: str):
         self.llm = ChatOpenAI(
             openai_api_key=openai_api_key,
-            model_name="gpt-4-turbo-preview",
+            model_name="gpt-4o-mini",
             temperature=0.3
         )
 

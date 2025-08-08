@@ -32,7 +32,7 @@ Supabase에서 Vector Extension을 활성화하고 documents 테이블을 생성
 CREATE EXTENSION IF NOT EXISTS vector;
 
 -- Documents 테이블 생성 (backend/app/services/vector_service.py 참조)
-CREATE TABLE IF NOT EXISTS documents (
+CREATE TABLE IF NOT EXISTS github_documents (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     repo_name TEXT NOT NULL,
     commit_hash TEXT NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS documents (
 );
 
 CREATE INDEX IF NOT EXISTS documents_embedding_idx 
-ON documents 
+ON github_documents 
 USING ivfflat (embedding vector_cosine_ops)
 WITH (lists = 100);
 ```
@@ -91,11 +91,22 @@ docker-compose up -d frontend
 
 ```bash
 # 프로덕션 환경으로 시작
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 
 # 상태 확인
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 ```
+```zsh
+# 일반적인 재배포       
+docker compose -f docker-compose.prod.yml up -d --build          # 가장 빠르고 효율적인 방법입니다.                   │
+# 컨테이너 강제 재생성 
+docker compose -f docker-compose.prod.yml up -d --force-recreate # 설정 변경 등을 확실히 반영하고 싶을 때 사용합니다. │
+# 빌드 캐시 문제 해결  
+docker compose -f docker-compose.prod.yml build --no-cache       # 빌드 과정에 문제가 있을 때 사용합니다.             │
+# 완전한 초기화        
+docker compose -f docker-compose.prod.yml down 후 up --build     # 모든 것을 깨끗하게 정리하고 새로 시작합니다.       │
+```
+
 
 ### SSL 인증서 설정 (선택사항)
 
@@ -113,39 +124,39 @@ certbot certonly --standalone -d your-domain.com
 ### 로그 확인
 ```bash
 # 모든 서비스 로그
-docker-compose logs -f
+docker compose logs -f
 
 # 특정 서비스 로그
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f redis
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f redis
 ```
 
 ### 컨테이너 관리
 ```bash
 # 서비스 중지
-docker-compose down
+docker compose down
 
 # 볼륨까지 삭제
-docker-compose down -v
+docker compose down -v
 
 # 이미지 재빌드
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # 특정 서비스만 재시작
-docker-compose restart backend
+docker compose restart backend
 ```
 
 ### 데이터베이스/캐시 관리
 ```bash
 # Redis CLI 접속
-docker-compose exec redis redis-cli
+docker compose exec redis redis-cli
 
 # Redis 데이터 확인
-docker-compose exec redis redis-cli keys "*"
+docker compose exec redis redis-cli keys "*"
 
 # 캐시 초기화
-docker-compose exec redis redis-cli flushall
+docker compose exec redis redis-cli flushall
 ```
 
 ## 문제 해결
@@ -169,10 +180,10 @@ docker-compose exec redis redis-cli flushall
 ### 로그 분석
 ```bash
 # 에러 로그만 필터링
-docker-compose logs backend | grep -i error
+docker compose logs backend | grep -i error
 
 # 실시간 로그 모니터링
-docker-compose logs -f --tail=50 backend
+docker compose logs -f --tail=50 backend
 ```
 
 ## 성능 최적화

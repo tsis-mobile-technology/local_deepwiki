@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
+import { Box, Typography, Button, Select, MenuItem, FormControl, InputLabel, FormControlLabel, Checkbox, Paper, Grid } from '@mui/material';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 interface Component {
   name: string;
@@ -40,8 +42,12 @@ const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({ architectureD
   const [diagramType, setDiagramType] = useState<'flowchart' | 'graph'>('flowchart');
   const [showMetrics, setShowMetrics] = useState(true);
 
+  // Check if architecture data is empty or minimal
+  const hasComponents = Object.keys(architectureData.components || {}).length > 0;
+  const hasDependencies = (architectureData.dependencies || []).length > 0;
+
   useEffect(() => {
-    mermaid.initialize({ 
+    mermaid.initialize({
       startOnLoad: true,
       theme: 'default',
       flowchart: {
@@ -93,7 +99,7 @@ const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({ architectureD
     Object.values(architectureData.components).forEach(component => {
       const nodeId = component.name.replace(/[^a-zA-Z0-9]/g, '_');
       const nodeStyle = getNodeStyle(component.type);
-      diagram += `    ${nodeId}["${component.name}\\n(${component.type})"]\n`;
+      diagram += `    ${nodeId}["${component.name}\n(${component.type})"]\n`;
       diagram += `    ${nodeId} --> ${nodeId}Style[${nodeStyle}]\n`;
     });
 
@@ -172,111 +178,129 @@ const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({ architectureD
 
   if (!architectureData || Object.keys(architectureData.components).length === 0) {
     return (
-      <div style={{ 
-        padding: '20px', 
-        textAlign: 'center', 
-        color: '#666',
-        border: '1px solid #ddd',
-        borderRadius: '8px',
-        margin: '20px 0'
+      <Box sx={{
+        textAlign: 'center',
+        p: 5,
+        bgcolor: 'background.paper',
+        borderRadius: 3,
+        m: 2,
+        color: 'text.secondary',
+        border: '1px solid', borderColor: 'divider'
       }}>
-        아키텍처 분석 데이터를 로드할 수 없습니다.
-      </div>
+        <InfoOutlinedIcon sx={{ fontSize: '4rem', mb: 2, color: 'primary.main' }} />
+        <Typography variant="h5" component="h3" color="text.primary" gutterBottom>
+          No Architecture Data Available
+        </Typography>
+        <Typography variant="body1" sx={{ lineHeight: 1.6, maxWidth: 600, mx: 'auto', mb: 2 }}>
+          This repository appears to be simple or doesn't contain analyzable code files. 
+          Architecture diagrams are generated for projects with:
+        </Typography>
+        <Box component="ul" sx={{
+          textAlign: 'left',
+          maxWidth: 400,
+          mx: 'auto',
+          p: 0,
+          listStyle: 'none',
+          color: 'text.secondary'
+        }}>
+          <Typography component="li" variant="body2" sx={{ py: 0.5 }}>✓ Multiple source code files</Typography>
+          <Typography component="li" variant="body2" sx={{ py: 0.5 }}>✓ Class and function definitions</Typography>
+          <Typography component="li" variant="body2" sx={{ py: 0.5 }}>✓ Import/dependency relationships</Typography>
+        </Box>
+        <Typography variant="body2" color="text.disabled" sx={{ mt: 3 }}>
+          Try analyzing a larger project with multiple files and dependencies.
+        </Typography>
+      </Box>
     );
   }
 
   return (
-    <div style={{ 
-      marginTop: '30px', 
-      border: '1px solid #ddd', 
-      borderRadius: '8px',
-      backgroundColor: '#fafafa'
-    }}>
-      <div style={{ 
-        padding: '15px', 
-        borderBottom: '1px solid #ddd',
+    <Paper sx={{ mt: 4, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper' }}>
+      <Box sx={{
+        p: 2,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <h3 style={{ margin: 0 }}>🏗️ 프로젝트 아키텍처</h3>
+        <Typography variant="h6" component="h3">🏗️ 프로젝트 아키텍처</Typography>
         
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <select
-            value={diagramType}
-            onChange={(e) => setDiagramType(e.target.value as 'flowchart' | 'graph')}
-            style={{
-              padding: '5px 10px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              backgroundColor: 'white'
-            }}
-          >
-            <option value="flowchart">플로우차트</option>
-            <option value="graph">그래프</option>
-          </select>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Diagram Type</InputLabel>
+            <Select
+              value={diagramType}
+              label="Diagram Type"
+              onChange={(e) => setDiagramType(e.target.value as 'flowchart' | 'graph')}
+            >
+              <MenuItem value="flowchart">플로우차트</MenuItem>
+              <MenuItem value="graph">그래프</MenuItem>
+            </Select>
+          </FormControl>
           
-          <label style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <input
-              type="checkbox"
-              checked={showMetrics}
-              onChange={(e) => setShowMetrics(e.target.checked)}
-            />
-            메트릭스 표시
-          </label>
-        </div>
-      </div>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showMetrics}
+                onChange={(e) => setShowMetrics(e.target.checked)}
+                name="showMetrics"
+                color="primary"
+              />
+            }
+            label="메트릭스 표시"
+            sx={{ fontSize: '0.875rem' }}
+          />
+        </Box>
+      </Box>
 
       {/* Metrics Panel */}
       {showMetrics && (
-        <div style={{ 
-          padding: '15px', 
-          backgroundColor: '#f5f5f5',
-          borderBottom: '1px solid #ddd'
+        <Box sx={{
+          p: 2,
+          bgcolor: 'action.hover',
+          borderBottom: '1px solid',
+          borderColor: 'divider'
         }}>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-            gap: '15px' 
-          }}>
-            <div>
-              <strong>전체 컴포넌트:</strong> {architectureData.metrics.total_components}개
-            </div>
-            <div>
-              <strong>의존성:</strong> {architectureData.metrics.total_dependencies}개
-            </div>
-            <div>
-              <strong>의존성 밀도:</strong> {architectureData.metrics.dependency_density}
-            </div>
-            <div>
-              <strong>복잡도:</strong> {architectureData.structure.complexity}
-            </div>
-          </div>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="body2"><strong>전체 컴포넌트:</strong> {architectureData.metrics.total_components}개</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="body2"><strong>의존성:</strong> {architectureData.metrics.total_dependencies}개</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="body2"><strong>의존성 밀도:</strong> {architectureData.metrics.dependency_density}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="body2"><strong>복잡도:</strong> {architectureData.structure.complexity}</Typography>
+            </Grid>
+          </Grid>
           
           {architectureData.structure.patterns.length > 0 && (
-            <div style={{ marginTop: '10px' }}>
+            <Typography variant="body2" sx={{ mt: 1 }}>
               <strong>감지된 패턴:</strong> {architectureData.structure.patterns.join(', ')}
-            </div>
+            </Typography>
           )}
           
           {architectureData.structure.layers.length > 0 && (
-            <div style={{ marginTop: '5px' }}>
+            <Typography variant="body2" sx={{ mt: 0.5 }}>
               <strong>아키텍처 레이어:</strong> {architectureData.structure.layers.join(', ')}
-            </div>
+            </Typography>
           )}
-        </div>
+        </Box>
       )}
 
       {/* Diagram Container */}
-      <div style={{ 
-        padding: '20px', 
-        backgroundColor: 'white',
+      <Box sx={{
+        p: 2,
+        bgcolor: 'background.default',
         minHeight: '400px',
         overflow: 'auto'
       }}>
-        <div ref={diagramRef} style={{ width: '100%', textAlign: 'center' }} />
-      </div>
-    </div>
+        <Box ref={diagramRef} sx={{ width: '100%', textAlign: 'center' }} />
+      </Box>
+    </Paper>
   );
 };
 

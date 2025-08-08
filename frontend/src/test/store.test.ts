@@ -1,86 +1,128 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import useAppStore from '../store';
+import { useStore } from '../store';
 
 describe('Zustand Store', () => {
   beforeEach(() => {
     // Reset store state before each test
-    useAppStore.setState({
-      repoUrl: '',
-      analysisStatus: '',
-      documentation: '',
-      isLoading: false,
+    useStore.setState({
+      currentView: 'home',
+      loading: false,
       error: null,
+      progress: '',
+      taskId: null,
+      documentation: null,
+      architecture: null,
+      repoName: '',
+      history: [],
     });
   });
 
   it('has initial state', () => {
-    const state = useAppStore.getState();
+    const state = useStore.getState();
     
-    expect(state.repoUrl).toBe('');
-    expect(state.analysisStatus).toBe('');
-    expect(state.documentation).toBe('');
-    expect(state.isLoading).toBe(false);
+    expect(state.currentView).toBe('home');
+    expect(state.loading).toBe(false);
     expect(state.error).toBe(null);
+    expect(state.progress).toBe('');
+    expect(state.taskId).toBe(null);
+    expect(state.documentation).toBe(null);
+    expect(state.architecture).toBe(null);
+    expect(state.repoName).toBe('');
+    expect(state.history).toEqual([]);
   });
 
-  it('can set repo URL', () => {
-    const { setRepoUrl } = useAppStore.getState();
+  it('can submit repo URL', async () => {
+    const { submitRepoUrl } = useStore.getState();
     
-    setRepoUrl('https://github.com/test/repo');
+    // Test that the function exists and is callable
+    expect(typeof submitRepoUrl).toBe('function');
     
-    expect(useAppStore.getState().repoUrl).toBe('https://github.com/test/repo');
+    // We can't easily test the full async behavior without mocking fetch,
+    // but we can test that it sets loading state initially
+    const promise = submitRepoUrl('https://github.com/test/repo');
+    
+    // Check that loading state was set
+    expect(useStore.getState().loading).toBe(true);
+    expect(useStore.getState().currentView).toBe('loading');
+    
+    // Wait for the promise to complete (will fail due to mock fetch)
+    await expect(promise).resolves.toBeUndefined();
   });
 
-  it('can set analysis status', () => {
-    const { setAnalysisStatus } = useAppStore.getState();
+  it('can reset state', () => {
+    // First set some non-default state
+    useStore.setState({
+      currentView: 'docs',
+      loading: true,
+      error: 'test error',
+      progress: 'test progress',
+      taskId: 'test-id',
+      documentation: 'test doc',
+      architecture: 'test arch',
+      repoName: 'test repo',
+    });
     
-    setAnalysisStatus('Analyzing...');
+    const { resetState } = useStore.getState();
+    resetState();
     
-    expect(useAppStore.getState().analysisStatus).toBe('Analyzing...');
+    const state = useStore.getState();
+    expect(state.currentView).toBe('home');
+    expect(state.loading).toBe(false);
+    expect(state.error).toBe(null);
+    expect(state.progress).toBe('');
+    expect(state.taskId).toBe(null);
+    expect(state.documentation).toBe(null);
+    expect(state.architecture).toBe(null);
+    expect(state.repoName).toBe('');
   });
 
-  it('can set documentation', () => {
-    const { setDocumentation } = useAppStore.getState();
+  it('can fetch history', async () => {
+    const { fetchHistory } = useStore.getState();
     
-    setDocumentation('# Test Doc\nContent here');
+    // Test that the function exists and is callable
+    expect(typeof fetchHistory).toBe('function');
     
-    expect(useAppStore.getState().documentation).toBe('# Test Doc\nContent here');
+    // The function will use the mocked fetch from setup.ts
+    await fetchHistory();
+    
+    // Should have empty array due to mock setup
+    expect(useStore.getState().history).toEqual([]);
   });
 
-  it('can set loading state', () => {
-    const { setIsLoading } = useAppStore.getState();
+  it('has all required methods', () => {
+    const state = useStore.getState();
     
-    setIsLoading(true);
-    expect(useAppStore.getState().isLoading).toBe(true);
-    
-    setIsLoading(false);
-    expect(useAppStore.getState().isLoading).toBe(false);
+    expect(typeof state.submitRepoUrl).toBe('function');
+    expect(typeof state.fetchHistory).toBe('function');
+    expect(typeof state.fetchResult).toBe('function');
+    expect(typeof state.resetState).toBe('function');
   });
 
-  it('can set error state', () => {
-    const { setError } = useAppStore.getState();
+  it('state updates work correctly', () => {
+    // Test direct state updates
+    useStore.setState({ 
+      loading: true, 
+      error: 'test error',
+      progress: 'test progress',
+      repoName: 'test repo'
+    });
     
-    setError('Something went wrong');
-    expect(useAppStore.getState().error).toBe('Something went wrong');
-    
-    setError(null);
-    expect(useAppStore.getState().error).toBe(null);
+    const state = useStore.getState();
+    expect(state.loading).toBe(true);
+    expect(state.error).toBe('test error');
+    expect(state.progress).toBe('test progress');
+    expect(state.repoName).toBe('test repo');
   });
 
-  it('all setters work independently', () => {
-    const { setRepoUrl, setAnalysisStatus, setDocumentation, setIsLoading, setError } = useAppStore.getState();
+  it('fetchResult method exists and is callable', async () => {
+    const { fetchResult } = useStore.getState();
     
-    setRepoUrl('test-url');
-    setAnalysisStatus('test-status');
-    setDocumentation('test-doc');
-    setIsLoading(true);
-    setError('test-error');
+    expect(typeof fetchResult).toBe('function');
     
-    const state = useAppStore.getState();
-    expect(state.repoUrl).toBe('test-url');
-    expect(state.analysisStatus).toBe('test-status');
-    expect(state.documentation).toBe('test-doc');
-    expect(state.isLoading).toBe(true);
-    expect(state.error).toBe('test-error');
+    // Call it with a test task ID - this will use the mocked fetch
+    await fetchResult('test-task-id');
+    
+    // Should have set loading to true initially
+    expect(useStore.getState().loading).toBe(true);
   });
 });

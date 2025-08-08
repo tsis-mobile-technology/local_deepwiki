@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { Box, Typography, TextField, Button, CircularProgress, Chip, Alert } from '@mui/material';
 
 interface QASectionProps {
   repoName: string;
@@ -30,7 +31,7 @@ const QASection: React.FC<QASectionProps> = ({ repoName }) => {
 
   const loadSuggestions = async () => {
     try {
-      const response = await axios.get(`http://localhost:8000/api/suggestions/${repoName}`);
+      const response = await axios.get(`/api/suggestions/${repoName}`);
       setSuggestions(response.data.suggestions || []);
     } catch (err) {
       console.error('Failed to load suggestions:', err);
@@ -46,7 +47,7 @@ const QASection: React.FC<QASectionProps> = ({ repoName }) => {
     setSources([]);
 
     try {
-      const response = await axios.post<QAResponse>('http://localhost:8000/api/ask', {
+      const response = await axios.post<QAResponse>('/api/ask', {
         question: questionText,
         repo_name: repoName
       });
@@ -72,144 +73,101 @@ const QASection: React.FC<QASectionProps> = ({ repoName }) => {
 
   if (!repoName) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-        문서 분석이 완료되면 질문할 수 있습니다.
-      </div>
+      <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary' }}>
+        <Typography variant="body1">문서 분석이 완료되면 질문할 수 있습니다.</Typography>
+      </Box>
     );
   }
 
   return (
-    <div style={{ 
-      marginTop: '30px', 
-      padding: '20px', 
-      border: '1px solid #ddd', 
-      borderRadius: '8px',
-      backgroundColor: '#f9f9f9' 
-    }}>
-      <h3>💬 AI와 대화하기</h3>
-      <p style={{ color: '#666', marginBottom: '20px' }}>
+    <Box sx={{ mt: 4, p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper' }}>
+      <Typography variant="h6" gutterBottom>💬 AI와 대화하기</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         이 리포지토리에 대해 궁금한 것을 질문해보세요!
-      </p>
+      </Typography>
 
       {/* 추천 질문들 */}
       {suggestions.length > 0 && (
-        <div style={{ marginBottom: '20px' }}>
-          <h4>💡 추천 질문</h4>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle1" gutterBottom>💡 추천 질문</Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
             {suggestions.map((suggestion, index) => (
-              <button
+              <Chip
                 key={index}
+                label={suggestion}
                 onClick={() => handleSuggestionClick(suggestion)}
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: '#e3f2fd',
-                  border: '1px solid #2196f3',
-                  borderRadius: '16px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#1976d2'
-                }}
-                onMouseOver={(e) => e.target.style.backgroundColor = '#bbdefb'}
-                onMouseOut={(e) => e.target.style.backgroundColor = '#e3f2fd'}
-              >
-                {suggestion}
-              </button>
+                color="primary"
+                variant="outlined"
+                clickable
+              />
             ))}
-          </div>
-        </div>
+          </Box>
+        </Box>
       )}
 
       {/* 질문 입력 */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-        <input
-          type="text"
+      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        <TextField
+          fullWidth
+          variant="outlined"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="궁금한 것을 질문해보세요..."
-          style={{
-            flex: 1,
-            padding: '12px',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
-            fontSize: '14px'
-          }}
           onKeyPress={(e) => e.key === 'Enter' && handleAskQuestion()}
           disabled={isLoading}
+          size="small"
         />
-        <button
+        <Button
+          variant="contained"
           onClick={() => handleAskQuestion()}
           disabled={isLoading || !question.trim()}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: isLoading ? '#ccc' : '#2196f3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            fontSize: '14px'
-          }}
+          endIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
         >
           {isLoading ? '생각중...' : '질문하기'}
-        </button>
-      </div>
+        </Button>
+      </Box>
 
       {/* 답변 영역 */}
       {error && (
-        <div style={{
-          padding: '12px',
-          backgroundColor: '#ffebee',
-          border: '1px solid #f44336',
-          borderRadius: '4px',
-          color: '#c62828',
-          marginBottom: '20px'
-        }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           {error}
-        </div>
+        </Alert>
       )}
 
       {answer && (
-        <div style={{
-          padding: '16px',
-          backgroundColor: 'white',
-          border: '1px solid #e0e0e0',
-          borderRadius: '4px',
-          marginBottom: '20px'
-        }}>
-          <h4 style={{ marginTop: 0, color: '#333' }}>🤖 답변</h4>
-          <div style={{ 
-            lineHeight: '1.6', 
-            whiteSpace: 'pre-wrap',
-            color: '#444'
-          }}>
+        <Box sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 2 }}>
+          <Typography variant="subtitle1" gutterBottom>🤖 답변</Typography>
+          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
             {answer}
-          </div>
-        </div>
+          </Typography>
+        </Box>
       )}
 
       {/* 참조 문서들 */}
       {sources.length > 0 && (
-        <div>
-          <h4 style={{ color: '#666', fontSize: '14px' }}>📚 참조된 문서</h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <Box>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>📚 참조된 문서</Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {sources.map((source, index) => (
-              <div
+              <Box
                 key={index}
-                style={{
-                  padding: '10px',
-                  backgroundColor: '#f5f5f5',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  color: '#666'
+                sx={{
+                  p: 1.5,
+                  bgcolor: 'action.hover',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  fontSize: '0.75rem',
+                  color: 'text.secondary',
                 }}
               >
                 {source.content}
-              </div>
+              </Box>
             ))}
-          </div>
-        </div>
+          </Box>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 };
 

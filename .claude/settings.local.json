@@ -3,7 +3,17 @@
     "allow": [
       "Bash(source:*)",
       "Bash(python -m pytest tests/ -v)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(docker:*)",
+      "Bash(mkdir:*)",
+      "Bash(openssl req:*)",
+      "Bash(curl:*)",
+      "Bash(npm test:*)",
+      "Bash(npx vitest:*)",
+      "Bash(python -m pytest --tb=short -q)",
+      "Bash(python -m pytest tests/test_analysis_simple.py --tb=short -v)",
+      "Bash(python -m pytest tests/test_analysis_simple.py --tb=short -q)",
+      "Bash(python -m pytest --tb=short --count=20)"
     ],
     "deny": []
   }

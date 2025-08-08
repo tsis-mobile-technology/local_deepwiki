@@ -1,8 +1,11 @@
 import pytest
-from app.services.analysis_service import AnalysisService
+from app.services.analysis_service import AnalysisService, TREE_SITTER_AVAILABLE
 
 @pytest.fixture
 def analysis_service():
+    # Ensure TREE_SITTER_AVAILABLE is True for testing
+    if not TREE_SITTER_AVAILABLE:
+        pytest.skip("Tree-sitter is not available, skipping tests that require it.")
     return AnalysisService()
 
 def test_analyze_python_code(analysis_service):

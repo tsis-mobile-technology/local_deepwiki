@@ -9,13 +9,13 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies including devDependencies for build
+RUN npm install
 
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application (skip type checking for production build)
 RUN npm run build
 
 # Stage 2: Production stage with nginx

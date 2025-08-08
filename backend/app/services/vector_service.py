@@ -36,7 +36,7 @@ class VectorService:
                 )
                 
                 # Supabase에 저장
-                result = self.supabase.table("documents").insert({
+                result = self.supabase.table("github_documents").insert({
                     "repo_name": repo_name,
                     "commit_hash": commit_hash,
                     "chunk_index": i,
@@ -65,14 +65,13 @@ class VectorService:
                 self.embeddings.embed_query, query
             )
             
-            # 2. Supabase에서 유사도 검색
-            # Note: 실제로는 Supabase의 Vector similarity search 기능을 사용해야 함
-            # 여기서는 간소화된 버전을 구현
-            result = self.supabase.table("documents")\
-                .select("content, metadata, repo_name")\
-                .eq("repo_name", repo_name)\
-                .limit(limit)\
-                .execute()
+            # 2. Supabase에서 RPC를 사용하여 유사도 검색
+            result = self.supabase.rpc('match_documents', {
+                'query_embedding': query_embedding,
+                'match_threshold': 0.7,
+                'match_count': limit,
+                'p_repo_name': repo_name
+            }).execute()
             
             if result.data:
                 return result.data
@@ -86,7 +85,7 @@ class VectorService:
     async def delete_repo_documents(self, repo_name: str, commit_hash: str):
         """특정 리포지토리의 문서들을 삭제"""
         try:
-            result = self.supabase.table("documents")\
+            result = self.supabase.table("github_documents")\
                 .delete()\
                 .eq("repo_name", repo_name)\
                 .eq("commit_hash", commit_hash)\
@@ -99,10 +98,10 @@ class VectorService:
             return {"success": False, "error": str(e)}
 
     def create_documents_table_sql(self) -> str:
-        """documents 테이블 생성을 위한 SQL 스크립트 반환"""
+        """github_documents 테이블 생성을 위한 SQL 스크립트 반환"""
         return """
-        -- documents 테이블 생성
-        CREATE TABLE IF NOT EXISTS documents (
+        -- github_documents 테이블 생성
+        CREATE TABLE IF NOT EXISTS github_documents (
             id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
             repo_name TEXT NOT NULL,
             commit_hash TEXT NOT NULL,
@@ -117,15 +116,15 @@ class VectorService:
         );
 
         -- Vector 유사도 검색을 위한 인덱스 생성
-        CREATE INDEX IF NOT EXISTS documents_embedding_idx 
-        ON documents 
+        CREATE INDEX IF NOT EXISTS github_documents_embedding_idx 
+        ON github_documents 
         USING ivfflat (embedding vector_cosine_ops)
         WITH (lists = 100);
 
         -- 일반 검색을 위한 인덱스
-        CREATE INDEX IF NOT EXISTS documents_repo_commit_idx 
-        ON documents (repo_name, commit_hash);
+        CREATE INDEX IF NOT EXISTS github_documents_repo_commit_idx 
+        ON github_documents (repo_name, commit_hash);
         
         -- RLS (Row Level Security) 정책 (선택사항)
-        ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
+        ALTER TABLE github_documents ENABLE ROW LEVEL SECURITY;
         """

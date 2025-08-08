@@ -1,12 +1,11 @@
 import React from 'react';
+import { CircularProgress } from '@mui/material';
 
-const LoadingSpinner: React.FC = () => {
+const LoadingSpinner: React.FC = React.memo(() => {
   return (
-    <div className="loading-spinner">
-      {/* Basic spinner animation/icon */}
-      Loading...
-    </div>
+    <CircularProgress color="primary" size={40} />
   );
-};
+});
 
+LoadingSpinner.displayName = 'LoadingSpinner';
 export default LoadingSpinner;
