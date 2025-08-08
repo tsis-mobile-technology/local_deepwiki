@@ -1,12 +1,12 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
   line-height: 1.5;
   font-weight: 400;
 
-  /* Default to light theme */
-  color-scheme: light;
-  color: #213547;
-  background-color: #ffffff;
+  /* Dark theme colors */
+  color-scheme: dark;
+  color: #ffffff;
+  background-color: #121212;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -14,13 +14,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+/* Global text color enforcement */
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -29,11 +25,112 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #121212 !important;
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #121212 !important;
+  color: #ffffff !important;
+}
+
+/* Force all text elements to use white color */
+h1, h2, h3, h4, h5, h6 {
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+p, span, div, label {
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* MUI Typography overrides */
+.MuiTypography-root {
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+}
+
+.MuiTypography-h1,
+.MuiTypography-h2,
+.MuiTypography-h3,
+.MuiTypography-h4,
+.MuiTypography-h5,
+.MuiTypography-h6 {
+  color: #ffffff !important;
+  font-weight: bold !important;
+}
+
+.MuiTypography-body1,
+.MuiTypography-body2,
+.MuiTypography-subtitle1,
+.MuiTypography-subtitle2 {
+  color: #ffffff !important;
+}
+
+.MuiTypography-caption {
+  color: #b0b0b0 !important;
+}
+
+/* Container and layout overrides */
+.MuiContainer-root {
+  color: #ffffff !important;
+}
+
+.MuiBox-root {
+  color: inherit !important;
+}
+
+/* Paper and card overrides */
+.MuiPaper-root {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+}
+
+/* Chip overrides */
+.MuiChip-root {
+  color: #ffffff !important;
+}
+
+.MuiChip-icon {
+  color: #ffffff !important;
+}
+
+/* Button overrides */
+.MuiButton-root {
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+}
+
+/* Input field overrides */
+.MuiInputBase-input {
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+}
+
+.MuiInputLabel-root {
+  color: #b0b0b0 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+}
+
+/* Links */
+a {
+  font-weight: 500;
+  color: #00bcd4 !important;
+  text-decoration: inherit;
+}
+
+a:hover {
+  color: #4dd0e1 !important;
 }
 
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+  color: #ffffff !important;
 }
 
 button {
@@ -42,29 +139,86 @@ button {
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
-  font-family: inherit;
-  background-color: #f9f9f9;
-  color: #213547;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #00bcd4;
+  color: #ffffff !important;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  transition: border-color 0.25s, background-color 0.25s;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+button:hover {
+  background-color: #00838f;
+  border-color: #4dd0e1;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px auto #00bcd4;
+}
+
+button:disabled {
+  background-color: #616161 !important;
+  color: #9e9e9e !important;
+  cursor: not-allowed;
+}
+
+/* Ensure proper text contrast */
+.text-primary {
+  color: #ffffff !important;
+}
+
+.text-secondary {
+  color: #b0b0b0 !important;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #424242;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #616161;
+}
+
+/* Force specific components to use white text */
+[class*="MuiTypography"] {
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+}
+
+/* Secondary text elements */
+[class*="MuiTypography"][class*="secondary"] {
+  color: #e0e0e0 !important;
+}
+
+/* Caption and helper text */
+[class*="MuiTypography"][class*="caption"] {
+  color: #b0b0b0 !important;
+}
+
+/* Analysis History specific overrides */
+[class*="analysis-history"] * {
+  color: #ffffff !important;
+}
+
+/* Ensure all children inherit proper colors */
+.MuiContainer-root * {
+  color: inherit;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Override any potential theme conflicts */
+.MuiCssBaseline-root {
+  color: #ffffff !important;
+  background-color: #121212 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
 }

@@ -16,8 +16,6 @@ from supabase import create_client, Client
 
 app = FastAPI()
 
-
-
 # CORS 미들웨어 설정
 origins = [
     "http://localhost:3000",
@@ -54,6 +52,9 @@ class AnalyzeRequest(BaseModel):
 class AskRequest(BaseModel):
     question: str
     repo_name: str
+
+class DeleteRequest(BaseModel):
+    task_ids: List[str]
 
 async def update_task_status(task_id: str, status: str, data: Dict = None, error: str = None):
     """Update task status in the database."""
@@ -163,7 +164,7 @@ async def get_result(task_id: str):
 async def get_analyses_history() -> List[Dict[str, Any]]:
     """Get the history of all analysis tasks."""
     response = await asyncio.to_thread(supabase.table("analysis_tasks")\
-        .select("id, repo_name, status, created_at, updated_at")\
+        .select("id, repo_name, status, created_at, updated_at, commit_hash")\
         .order("created_at", desc=True)\
         .limit(50)\
         .execute)
@@ -171,6 +172,85 @@ async def get_analyses_history() -> List[Dict[str, Any]]:
     if not response.data:
         return []
     return response.data
+
+@app.delete("/api/analyses")
+async def delete_analyses(request: DeleteRequest):
+    """Delete multiple analysis tasks."""
+    try:
+        if not request.task_ids:
+            raise HTTPException(status_code=400, detail="No task IDs provided")
+        
+        deleted_tasks = []
+        failed_deletes = []
+        
+        for task_id in request.task_ids:
+            try:
+                # Get task info before deletion for cleanup
+                task_response = await asyncio.to_thread(
+                    supabase.table("analysis_tasks")
+                    .select("repo_name, commit_hash")
+                    .eq("id", task_id)
+                    .execute
+                )
+                
+                if task_response.data:
+                    task_data = task_response.data[0]
+                    repo_name = task_data.get("repo_name")
+                    commit_hash = task_data.get("commit_hash")
+                    
+                    # Delete from analysis_tasks table
+                    delete_response = await asyncio.to_thread(
+                        supabase.table("analysis_tasks")
+                        .delete()
+                        .eq("id", task_id)
+                        .execute
+                    )
+                    
+                    # Clean up vector store if commit_hash exists
+                    if repo_name and commit_hash:
+                        await vector_service.delete_repo_documents(repo_name, commit_hash)
+                        
+                        # Clear cache
+                        cache_key = f"{repo_name}:{commit_hash}"
+                        try:
+                            cache_service.client.delete(cache_key)
+                        except Exception as cache_error:
+                            print(f"Warning: Failed to clear cache for {cache_key}: {cache_error}")
+                    
+                    deleted_tasks.append(task_id)
+                else:
+                    failed_deletes.append({"id": task_id, "reason": "Task not found"})
+                    
+            except Exception as e:
+                failed_deletes.append({"id": task_id, "reason": str(e)})
+        
+        return {
+            "deleted_count": len(deleted_tasks),
+            "deleted_tasks": deleted_tasks,
+            "failed_deletes": failed_deletes,
+            "success": len(deleted_tasks) > 0
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting analyses: {str(e)}")
+
+@app.delete("/api/analyses/{task_id}")
+async def delete_single_analysis(task_id: str):
+    """Delete a single analysis task."""
+    delete_request = DeleteRequest(task_ids=[task_id])
+    result = await delete_analyses(delete_request)
+    
+    if not result["success"]:
+        if result["failed_deletes"]:
+            error_reason = result["failed_deletes"][0]["reason"]
+            if "not found" in error_reason.lower():
+                raise HTTPException(status_code=404, detail="Task not found")
+            else:
+                raise HTTPException(status_code=500, detail=error_reason)
+        else:
+            raise HTTPException(status_code=500, detail="Failed to delete analysis")
+    
+    return {"message": "Analysis deleted successfully", "task_id": task_id}
 
 @app.post("/api/ask")
 async def ask_question(request: AskRequest):

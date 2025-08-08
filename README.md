@@ -18,6 +18,7 @@ DeepWiki is an AI-powered web application that automatically generates comprehen
 - 🔍 **Multi-Language Support**: Supports Python, JavaScript, TypeScript, and more via Tree-sitter
 - ⚡ **Real-time Updates**: WebSocket integration for live analysis progress
 - 🗄️ **Smart Caching**: Redis-based caching to reduce API costs and improve performance
+- 🗑️ **Analysis Management**: Select and delete analysis results with bulk operations
 - 🐳 **Containerized**: Full Docker support for easy deployment
 - 📊 **Comprehensive Testing**: TDD approach with 90%+ test coverage
 
@@ -28,12 +29,14 @@ DeepWiki/
 ├── 🖥️  Frontend (React + TypeScript)
 │   ├── Interactive UI with Markdown rendering
 │   ├── Real-time WebSocket communication
+│   ├── Analysis history management with delete functionality
 │   └── Architecture visualization with Mermaid.js
 │
 ├── 🔧 Backend (FastAPI + Python)
 │   ├── GitHub API integration
 │   ├── Tree-sitter code analysis
 │   ├── LangChain LLM pipeline
+│   ├── Analysis CRUD operations
 │   └── Vector database operations
 │
 └── 🗃️  Data Layer
@@ -66,12 +69,18 @@ DeepWiki/
    # Edit .env with your API keys
    ```
 
-3. **Start with Docker Compose**
+3. **Setup Supabase Database**
+   ```bash
+   # Run the SQL script in your Supabase dashboard
+   cat supabase_setup.sql
+   ```
+
+4. **Start with Docker Compose**
    ```bash
    docker-compose up -d
    ```
 
-4. **Access the application**
+5. **Access the application**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
    - API Docs: http://localhost:8000/docs
@@ -135,7 +144,7 @@ ENVIRONMENT=development
    ```sql
    CREATE EXTENSION vector;
    ```
-3. The application will automatically create required tables on first run
+3. Run the provided `supabase_setup.sql` script to create required tables
 
 ## 📋 API Documentation
 
@@ -149,10 +158,49 @@ ENVIRONMENT=development
   ```
 
 - **GET /api/result/{task_id}** - Get analysis results
+- **GET /api/analyses** - Get analysis history
+- **DELETE /api/analyses** - Delete multiple analyses (bulk operation)
+- **DELETE /api/analyses/{task_id}** - Delete single analysis
 - **GET /api/architecture/{task_id}** - Get architecture data
 - **POST /api/ask** - Ask questions about the repository
 - **GET /api/suggestions/{repo_name}** - Get suggested questions
 - **WebSocket /ws/status/{task_id}** - Real-time analysis updates
+
+### Analysis Management
+
+The application now supports comprehensive analysis management:
+
+#### Delete Single Analysis
+```bash
+curl -X DELETE "http://localhost:8000/api/analyses/task-id-here"
+```
+
+#### Delete Multiple Analyses (Bulk Operation)
+```bash
+curl -X DELETE "http://localhost:8000/api/analyses" \
+  -H "Content-Type: application/json" \
+  -d '{"task_ids": ["task-1", "task-2", "task-3"]}'
+```
+
+## 🛠️ User Interface Features
+
+### Analysis History Management
+
+- **📊 Analysis History View**: See all your analyzed repositories with status indicators
+- **✏️ Edit Mode**: Toggle selection mode to manage multiple analyses
+- **☑️ Batch Selection**: Select individual items or use "Select All" for bulk operations
+- **🗑️ Delete Functionality**: Remove unwanted analysis results with confirmation dialog
+- **📈 Status Tracking**: Visual status indicators (Completed, Pending, Analyzing, Failed)
+- **⏰ Time Stamps**: See when each analysis was created and last updated
+- **🔗 Commit References**: View associated Git commit hashes
+
+### Interactive Features
+
+1. **Single Click**: View analysis results in normal mode
+2. **Edit Mode**: Switch to selection mode for management tasks
+3. **Checkbox Selection**: Multi-select analyses for bulk operations
+4. **Confirmation Dialog**: Safety prompt before deletion
+5. **Real-time Feedback**: Loading states and success/error messages
 
 ## 🧪 Testing
 
@@ -180,10 +228,12 @@ tests/
 │   ├── test_analysis_service.py    # Code analysis tests
 │   ├── test_vector_service.py      # Vector database tests
 │   ├── test_qa_service.py          # Q&A functionality tests
+│   ├── test_delete_api.py          # Delete functionality tests
 │   └── test_integration.py         # End-to-end API tests
 └── frontend/
     ├── components/                  # Component unit tests
     ├── integration/                 # Integration tests
+    ├── store-delete.test.ts        # Delete functionality store tests
     └── e2e/                        # End-to-end tests
 ```
 
@@ -225,6 +275,7 @@ The application is ready for deployment on:
 - **TypeScript** - Type-safe JavaScript
 - **Vite** - Fast build tool
 - **Zustand** - Lightweight state management
+- **Material-UI** - Component library with dark theme
 - **Mermaid.js** - Diagram generation
 - **React Testing Library** - Testing utilities
 
@@ -241,6 +292,24 @@ The application is ready for deployment on:
 - **Rate Limiting**: Built-in protection against API abuse
 - **Error Tracking**: Comprehensive error logging and monitoring
 - **Test Coverage**: 90%+ code coverage across all components
+- **Resource Cleanup**: Automatic cleanup of deleted analyses from cache and vector store
+
+## 🗑️ Data Management
+
+### Cache Management
+- Automatic cache cleanup when analyses are deleted
+- Repository-specific cache invalidation
+- Cache statistics and health monitoring
+
+### Vector Store Cleanup
+- Automatic deletion of embeddings when analyses are removed
+- Commit-hash based cleanup for precise data management
+- Performance optimized bulk operations
+
+### Database Operations
+- ACID-compliant deletion operations
+- Cascade cleanup of related data
+- Comprehensive error handling and rollback
 
 ## 🤝 Contributing
 
@@ -272,6 +341,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🎯 Roadmap
 
+- [x] **Analysis Management**: Select and delete analysis results ✅
 - [ ] **Multi-Repository Analysis** - Analyze multiple repositories at once
 - [ ] **Custom Prompt Templates** - User-defined analysis prompts
 - [ ] **Export Functionality** - PDF, Confluence, Notion exports

@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     headers: {
-      'Content-Security-Policy': "default-src 'self'; connect-src 'self' http://localhost:8000; style-src 'self' 'unsafe-inline';"
+      'Content-Security-Policy': "default-src 'self'; connect-src 'self' http://localhost:8000 https://fonts.googleapis.com https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self'; img-src 'self' data: http: https: blob:; font-src 'self' https://fonts.gstatic.com;"
     }
   },
   test: {
