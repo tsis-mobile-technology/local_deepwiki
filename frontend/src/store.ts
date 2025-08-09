@@ -99,8 +99,27 @@ export const useStore = create<StoreState>()(
             
             if (status === 'completed' && result) {
               cleanup();
+              
+              // Process documentation data properly
+              let processedDocumentation = '';
+              if (result.result) {
+                if (typeof result.result === 'string') {
+                  processedDocumentation = result.result;
+                } else if (typeof result.result === 'object') {
+                  // If it's an object, try to extract meaningful content
+                  if (result.result.content) {
+                    processedDocumentation = String(result.result.content);
+                  } else {
+                    // Convert object to JSON string for debugging, but try to make it readable
+                    processedDocumentation = JSON.stringify(result.result, null, 2);
+                  }
+                } else {
+                  processedDocumentation = String(result.result);
+                }
+              }
+              
               set({ 
-                documentation: String(result.result), 
+                documentation: processedDocumentation, 
                 architecture: result.architecture, 
                 repoName: repo_name, 
                 loading: false, 
@@ -244,7 +263,7 @@ export const useStore = create<StoreState>()(
         // Only persist non-temporary data
         history: state.history,
         currentView: state.currentView,
-        documentation: String(state.documentation),
+        documentation: state.documentation ? String(state.documentation) : '',
         architecture: state.architecture,
         repoName: state.repoName,
       }),

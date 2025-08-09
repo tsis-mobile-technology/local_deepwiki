@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { registerLanguage } from 'react-syntax-highlighter/dist/esm/highlight';
+import python from 'react-syntax-highlighter/dist/esm/languages/prism/python';
+import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript';
+
+SyntaxHighlighter.registerLanguage('python', python);
+SyntaxHighlighter.registerLanguage('javascript', javascript);
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Box, Button, Tooltip } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';

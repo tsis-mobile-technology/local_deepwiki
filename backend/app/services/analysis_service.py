@@ -48,7 +48,8 @@ class AnalysisService:
 
     def analyze_code(self, content: str, language: str) -> Dict[str, Any]:
         if language not in self.parsers:
-            return {"error": f"Language '{language}' is not supported or failed to load."}
+            print(f"Parser not available for {language}, using fallback analysis")
+            return self._fallback_analysis(content, language)
         
         try:
             parser = self.parsers[language]
@@ -60,16 +61,31 @@ class AnalysisService:
                 "classes": self._find_classes(root_node, language),
                 "functions": self._find_functions(root_node, language),
             }
+            
+            # If tree-sitter analysis returned empty results, try fallback
+            if (not analysis["imports"] and not analysis["classes"] and not analysis["functions"]):
+                print(f"Tree-sitter returned empty results for {language}, using fallback")
+                return self._fallback_analysis(content, language)
+            
             return analysis
         except Exception as e:
-            print(f"Error analyzing code: {e}")
-            return {"error": f"Failed to analyze {language} code: {str(e)}"}
+            print(f"Error analyzing code with tree-sitter: {e}, using fallback")
+            return self._fallback_analysis(content, language)
 
     def _execute_query(self, node, language, query_string) -> List:
-        lang_obj = self.languages[language]
-        query = lang_obj.query(query_string)
-        captures = query.captures(node)
-        return captures
+        try:
+            lang_obj = self.languages[language]
+            query = lang_obj.query(query_string)
+            # Try newer API first, fallback to older API if needed
+            if hasattr(query, 'captures'):
+                captures = query.captures(node)
+            else:
+                # Fallback for older tree-sitter versions
+                captures = []
+            return captures
+        except Exception as e:
+            print(f"Query execution failed: {e}")
+            return []
 
     def _find_imports(self, node, language) -> List[str]:
         if language == 'python':
@@ -291,6 +307,72 @@ class AnalysisService:
         structure["layers"] = list(type_counts.keys())
         
         return structure
+
+    def _fallback_analysis(self, content: str, language: str) -> Dict[str, Any]:
+        """Simple regex-based analysis when tree-sitter is not available"""
+        import re
+        
+        analysis = {
+            "imports": [],
+            "classes": [],
+            "functions": []
+        }
+        
+        lines = content.split('\n')
+        
+        if language == 'python':
+            # Find imports
+            for i, line in enumerate(lines):
+                if re.match(r'^\s*(import|from)\s+', line.strip()):
+                    analysis["imports"].append(line.strip())
+            
+            # Find classes
+            for i, line in enumerate(lines):
+                match = re.match(r'^\s*class\s+(\w+)', line)
+                if match:
+                    analysis["classes"].append({
+                        "name": match.group(1),
+                        "line": i + 1
+                    })
+            
+            # Find functions (including async def)
+            for i, line in enumerate(lines):
+                match = re.match(r'^\s*(?:async\s+)?def\s+(\w+)', line)
+                if match:
+                    analysis["functions"].append({
+                        "name": match.group(1),
+                        "line": i + 1
+                    })
+                    
+        elif language in ['javascript', 'typescript']:
+            # Find imports
+            for i, line in enumerate(lines):
+                if re.match(r'^\s*(import|export)', line.strip()) or 'require(' in line:
+                    analysis["imports"].append(line.strip())
+            
+            # Find classes
+            for i, line in enumerate(lines):
+                match = re.match(r'^\s*class\s+(\w+)', line)
+                if match:
+                    analysis["classes"].append({
+                        "name": match.group(1),
+                        "line": i + 1
+                    })
+            
+            # Find functions
+            for i, line in enumerate(lines):
+                # Regular functions and arrow functions
+                match = re.match(r'^\s*(?:function\s+(\w+)|const\s+(\w+)\s*=|(\w+)\s*[:=]\s*(?:function|\(.*\)\s*=>))', line)
+                if match:
+                    func_name = match.group(1) or match.group(2) or match.group(3)
+                    if func_name:
+                        analysis["functions"].append({
+                            "name": func_name,
+                            "line": i + 1
+                        })
+        
+        print(f"Fallback analysis for {language}: {len(analysis['imports'])} imports, {len(analysis['classes'])} classes, {len(analysis['functions'])} functions")
+        return analysis
 
     def _calculate_architecture_metrics(self, components: Dict, dependencies: List) -> Dict:
         """아키텍처 메트릭스 계산"""

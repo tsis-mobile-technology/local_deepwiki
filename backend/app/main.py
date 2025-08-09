@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import asyncio
+import json
 from datetime import datetime
 
 from app.services.github_service import GitHubService
@@ -158,7 +159,29 @@ async def get_result(task_id: str):
     response = await asyncio.to_thread(supabase.table("analysis_tasks").select("*").eq("id", task_id).execute)
     if not response.data:
         raise HTTPException(status_code=404, detail="Task not found")
-    return response.data[0]
+    
+    task_data = response.data[0]
+    
+    # Ensure result data is properly formatted
+    if task_data.get('result') and isinstance(task_data['result'], dict):
+        result = task_data['result']
+        
+        # Make sure 'result' field (documentation) is a string
+        if 'result' in result:
+            if isinstance(result['result'], dict):
+                # If it's still an object, convert to string
+                if 'content' in result['result']:
+                    result['result'] = str(result['result']['content'])
+                else:
+                    result['result'] = json.dumps(result['result'], ensure_ascii=False, indent=2)
+            elif result['result'] is None:
+                result['result'] = "No documentation available for this repository."
+            else:
+                result['result'] = str(result['result'])
+        
+        task_data['result'] = result
+    
+    return task_data
 
 @app.get("/api/analyses")
 async def get_analyses_history() -> List[Dict[str, Any]]:
@@ -286,8 +309,29 @@ async def get_architecture_data(task_id: str):
             return {"status": "not_ready", "message": "Analysis not completed yet"}
         
         architecture = task.get("result", {}).get("architecture", {})
-        if not architecture or "error" in architecture:
-            raise HTTPException(status_code=500, detail="Architecture analysis failed or not found in result")
+        
+        # Check if architecture is empty or has no components
+        if not architecture or "error" in architecture or not architecture.get("components"):
+            # Return empty architecture structure that frontend can handle
+            return {
+                "status": "success", 
+                "architecture": {
+                    "components": {},
+                    "dependencies": [],
+                    "structure": {
+                        "layers": [],
+                        "patterns": [],
+                        "complexity": "unknown"
+                    },
+                    "metrics": {
+                        "total_components": 0,
+                        "total_dependencies": 0,
+                        "dependency_density": 0,
+                        "most_depended_component": "none",
+                        "max_dependency_count": 0
+                    }
+                }
+            }
         
         return {
             "status": "success",

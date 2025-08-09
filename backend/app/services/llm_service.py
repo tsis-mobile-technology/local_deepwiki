@@ -100,4 +100,28 @@ class LLMService:
         # Step 3: Generate the main draft
         final_documentation = self.run_draft_generation(repo_info, summary, structure_analysis)
 
+        # Ensure the final documentation is a clean string
+        if final_documentation is None:
+            return "No documentation could be generated for this repository."
+        
+        if isinstance(final_documentation, dict):
+            # If it's a dict, try to extract content field first
+            if 'content' in final_documentation:
+                final_documentation = str(final_documentation['content'])
+            else:
+                # Convert to formatted JSON as last resort
+                final_documentation = json.dumps(final_documentation, ensure_ascii=False, indent=2)
+        elif hasattr(final_documentation, 'content'):
+            # Handle LangChain message objects
+            final_documentation = str(final_documentation.content)
+        else:
+            final_documentation = str(final_documentation)
+
+        # Clean up any remaining object references
+        if '[object Object]' in final_documentation:
+            final_documentation = "Documentation generation returned invalid format. Please try analyzing the repository again."
+
+        if not final_documentation.strip():
+            return "No documentation could be generated for this repository. It might be too small or lack sufficient code for analysis."
+
         return final_documentation

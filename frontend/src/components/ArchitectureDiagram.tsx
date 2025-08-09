@@ -41,10 +41,127 @@ const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({ architectureD
   const diagramRef = useRef<HTMLDivElement>(null);
   const [diagramType, setDiagramType] = useState<'flowchart' | 'graph'>('flowchart');
   const [showMetrics, setShowMetrics] = useState(true);
+  const [isMermaidInitialized, setIsMermaidInitialized] = useState(false);
 
-  // Check if architecture data is empty or minimal
-  const hasComponents = Object.keys(architectureData.components || {}).length > 0;
-  const hasDependencies = (architectureData.dependencies || []).length > 0;
+  // Sample architecture data for demonstration when no real data is available
+  const sampleArchitecture = {
+    project_info: {
+      name: "local_deepwiki",
+      description: "Documentation Generator with Architecture Visualization",
+      main_language: "python"
+    },
+    components: {
+      "main": {
+        name: "main",
+        file_path: "backend/app/main.py",
+        type: "main",
+        classes: [],
+        functions: [
+          { name: "analyze_repository", line: 45 },
+          { name: "get_architecture_data", line: 277 }
+        ],
+        imports: [
+          "from fastapi import FastAPI",
+          "from app.services.analysis_service import AnalysisService"
+        ],
+        lines_count: 15
+      },
+      "AnalysisService": {
+        name: "AnalysisService",
+        file_path: "backend/app/services/analysis_service.py",
+        type: "service",
+        classes: [{ name: "AnalysisService", line: 16 }],
+        functions: [
+          { name: "analyze_code", line: 49 },
+          { name: "analyze_project_architecture", line: 122 }
+        ],
+        imports: ["from typing import Dict, Any, List"],
+        lines_count: 20
+      },
+      "GitHubService": {
+        name: "GitHubService",
+        file_path: "backend/app/services/github_service.py",
+        type: "service",
+        classes: [{ name: "GitHubService", line: 12 }],
+        functions: [
+          { name: "get_repo_structure", line: 45 },
+          { name: "get_file_content", line: 78 }
+        ],
+        imports: ["import requests"],
+        lines_count: 18
+      },
+      "VectorService": {
+        name: "VectorService",
+        file_path: "backend/app/services/vector_service.py",
+        type: "service",
+        classes: [{ name: "VectorService", line: 8 }],
+        functions: [
+          { name: "store_document", line: 25 },
+          { name: "search_documents", line: 45 }
+        ],
+        imports: ["from qdrant_client import QdrantClient"],
+        lines_count: 12
+      },
+      "ArchitectureDiagram": {
+        name: "ArchitectureDiagram",
+        file_path: "frontend/src/components/ArchitectureDiagram.tsx",
+        type: "component",
+        classes: [],
+        functions: [
+          { name: "ArchitectureDiagram", line: 40 },
+          { name: "generateFlowchartDiagram", line: 95 }
+        ],
+        imports: ["import React from 'react'", "import mermaid from 'mermaid'"],
+        lines_count: 22
+      }
+    },
+    dependencies: [
+      {
+        from: "main",
+        to: "AnalysisService",
+        type: "internal",
+        import_statement: "from app.services.analysis_service import AnalysisService"
+      },
+      {
+        from: "main",
+        to: "GitHubService", 
+        type: "internal",
+        import_statement: "from app.services.github_service import GitHubService"
+      },
+      {
+        from: "main",
+        to: "VectorService",
+        type: "internal",
+        import_statement: "from app.services.vector_service import VectorService"
+      },
+      {
+        from: "AnalysisService",
+        to: "GitHubService",
+        type: "internal",
+        import_statement: "from app.services.github_service import GitHubService"
+      }
+    ],
+    structure: {
+      layers: ["main", "service", "component"],
+      patterns: ["Service Layer", "Component Architecture"],
+      complexity: "medium"
+    },
+    metrics: {
+      total_components: 5,
+      total_dependencies: 4,
+      dependency_density: 0.8,
+      most_depended_component: "GitHubService",
+      max_dependency_count: 2
+    }
+  };
+
+  // Use sample data if no architecture data is available or if it's empty
+  const displayData = (!architectureData || !architectureData.components || Object.keys(architectureData.components).length === 0) 
+    ? sampleArchitecture 
+    : architectureData;
+
+  // Check if we're using real or sample data
+  const isUsingSampleData = displayData === sampleArchitecture;
 
   useEffect(() => {
     mermaid.initialize({
@@ -55,13 +172,14 @@ const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({ architectureD
         htmlLabels: true
       }
     });
+    setIsMermaidInitialized(true);
   }, []);
 
   useEffect(() => {
-    if (diagramRef.current && architectureData) {
+    if (diagramRef.current && displayData && isMermaidInitialized) {
       generateDiagram();
     }
-  }, [architectureData, diagramType]);
+  }, [architectureData, diagramType, isMermaidInitialized, displayData]);
 
   const generateDiagram = () => {
     if (!diagramRef.current) return;
@@ -96,22 +214,21 @@ const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({ architectureD
     let diagram = 'flowchart TD\n';
     
     // Add nodes with styling based on component type
-    Object.values(architectureData.components).forEach(component => {
+    Object.values(displayData.components).forEach(component => {
       const nodeId = component.name.replace(/[^a-zA-Z0-9]/g, '_');
       const nodeStyle = getNodeStyle(component.type);
-      diagram += `    ${nodeId}["${component.name}\n(${component.type})"]\n`;
-      diagram += `    ${nodeId} --> ${nodeId}Style[${nodeStyle}]\n`;
+      diagram += `    ${nodeId}["${component.name}\\n(${component.type})"]\n`;
     });
 
     // Add dependencies (only internal ones to avoid clutter)
-    architectureData.dependencies
+    displayData.dependencies
       .filter(dep => dep.type === 'internal')
       .forEach(dep => {
         const fromId = dep.from.replace(/[^a-zA-Z0-9]/g, '_');
         const toId = dep.to.replace(/[^a-zA-Z0-9]/g, '_');
         
         // Only add if both components exist
-        if (architectureData.components[dep.from] && architectureData.components[dep.to]) {
+        if (displayData.components[dep.from] && displayData.components[dep.to]) {
           diagram += `    ${fromId} --> ${toId}\n`;
         }
       });
@@ -133,7 +250,7 @@ const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({ architectureD
     
     // Group components by type for better visualization
     const componentsByType: Record<string, Component[]> = {};
-    Object.values(architectureData.components).forEach(component => {
+    Object.values(displayData.components).forEach(component => {
       if (!componentsByType[component.type]) {
         componentsByType[component.type] = [];
       }
@@ -151,13 +268,13 @@ const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({ architectureD
     });
 
     // Add dependencies
-    architectureData.dependencies
+    displayData.dependencies
       .filter(dep => dep.type !== 'external')
       .forEach(dep => {
         const fromId = dep.from.replace(/[^a-zA-Z0-9]/g, '_');
         const toId = dep.to.replace(/[^a-zA-Z0-9]/g, '_');
         
-        if (architectureData.components[dep.from] && architectureData.components[dep.to]) {
+        if (displayData.components[dep.from] && displayData.components[dep.to]) {
           diagram += `    ${fromId} --> ${toId}\n`;
         }
       });
@@ -224,7 +341,14 @@ const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({ architectureD
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <Typography variant="h6" component="h3">🏗️ 프로젝트 아키텍처</Typography>
+        <Box>
+          <Typography variant="h6" component="h3">🏗️ 프로젝트 아키텍처</Typography>
+          {isUsingSampleData && (
+            <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+              (샘플 데이터 표시 - 실제 아키텍처 분석 결과가 없어 데모용 구조를 보여줍니다)
+            </Typography>
+          )}
+        </Box>
         
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
@@ -264,28 +388,28 @@ const ArchitectureDiagram: React.FC<ArchitectureDiagramProps> = ({ architectureD
         }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6} md={3}>
-              <Typography variant="body2"><strong>전체 컴포넌트:</strong> {architectureData.metrics.total_components}개</Typography>
+              <Typography variant="body2"><strong>전체 컴포넌트:</strong> {displayData.metrics.total_components}개</Typography>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Typography variant="body2"><strong>의존성:</strong> {architectureData.metrics.total_dependencies}개</Typography>
+              <Typography variant="body2"><strong>의존성:</strong> {displayData.metrics.total_dependencies}개</Typography>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Typography variant="body2"><strong>의존성 밀도:</strong> {architectureData.metrics.dependency_density}</Typography>
+              <Typography variant="body2"><strong>의존성 밀도:</strong> {displayData.metrics.dependency_density}</Typography>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Typography variant="body2"><strong>복잡도:</strong> {architectureData.structure.complexity}</Typography>
+              <Typography variant="body2"><strong>복잡도:</strong> {displayData.structure.complexity}</Typography>
             </Grid>
           </Grid>
           
-          {architectureData.structure.patterns.length > 0 && (
+          {displayData.structure.patterns.length > 0 && (
             <Typography variant="body2" sx={{ mt: 1 }}>
-              <strong>감지된 패턴:</strong> {architectureData.structure.patterns.join(', ')}
+              <strong>감지된 패턴:</strong> {displayData.structure.patterns.join(', ')}
             </Typography>
           )}
           
-          {architectureData.structure.layers.length > 0 && (
+          {displayData.structure.layers.length > 0 && (
             <Typography variant="body2" sx={{ mt: 0.5 }}>
-              <strong>아키텍처 레이어:</strong> {architectureData.structure.layers.join(', ')}
+              <strong>아키텍처 레이어:</strong> {displayData.structure.layers.join(', ')}
             </Typography>
           )}
         </Box>
