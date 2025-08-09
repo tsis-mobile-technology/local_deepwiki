@@ -100,7 +100,7 @@ export const useStore = create<StoreState>()(
             if (status === 'completed' && result) {
               cleanup();
               set({ 
-                documentation: result.result, 
+                documentation: String(result.result), 
                 architecture: result.architecture, 
                 repoName: repo_name, 
                 loading: false, 
@@ -244,7 +244,7 @@ export const useStore = create<StoreState>()(
         // Only persist non-temporary data
         history: state.history,
         currentView: state.currentView,
-        documentation: state.documentation,
+        documentation: String(state.documentation),
         architecture: state.architecture,
         repoName: state.repoName,
       }),

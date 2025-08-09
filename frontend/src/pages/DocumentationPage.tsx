@@ -50,7 +50,7 @@ const DocumentationPage: React.FC = () => {
                 ),
               }}
             >
-              {documentation}
+              {String(documentation)}
             </ReactMarkdown>
           </Box>
         )}

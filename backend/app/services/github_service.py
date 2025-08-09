@@ -21,21 +21,46 @@ class GitHubService:
             repo_url = f"{self.BASE_URL}/repos/{repo_name}"
             repo_res = await self.client.get(repo_url)
             repo_res.raise_for_status()
-            repo_data = await repo_res.json()
+            print(f"DEBUG: Type of repo_res: {type(repo_res)}")
+            json_result = repo_res.json()
+            if asyncio.iscoroutine(json_result):
+                print("DEBUG: repo_res.json() returned a coroutine. Awaiting...")
+                repo_data = await json_result
+            else:
+                print("DEBUG: repo_res.json() returned a dict directly. Not awaiting.")
+                repo_data = json_result
+            print(f"DEBUG: Type of repo_data: {type(repo_data)}")
 
             default_branch = repo_data["default_branch"]
 
             # 2. Get commit hash
             branch_url = f"{self.BASE_URL}/repos/{repo_name}/branches/{default_branch}"
             branch_res = await self.client.get(branch_url)
+            print(f"DEBUG: Type of branch_res: {type(branch_res)}")
             branch_res.raise_for_status()
-            commit_hash = (await branch_res.json())["commit"]["sha"]
+            json_result = branch_res.json()
+            if asyncio.iscoroutine(json_result):
+                print("DEBUG: branch_res.json() returned a coroutine. Awaiting...")
+                branch_data = await json_result
+            else:
+                print("DEBUG: branch_res.json() returned a dict directly. Not awaiting.")
+                branch_data = json_result
+            print(f"DEBUG: Type of branch_data: {type(branch_data)}")
+            commit_hash = branch_data["commit"]["sha"]
 
             # 3. Get file tree
             tree_url = f"{self.BASE_URL}/repos/{repo_name}/git/trees/{commit_hash}?recursive=1"
             tree_res = await self.client.get(tree_url)
+            print(f"DEBUG: Type of tree_res: {type(tree_res)}")
             tree_res.raise_for_status()
-            tree_data = await tree_res.json()
+            json_result = tree_res.json()
+            if asyncio.iscoroutine(json_result):
+                print("DEBUG: tree_res.json() returned a coroutine. Awaiting...")
+                tree_data = await json_result
+            else:
+                print("DEBUG: tree_res.json() returned a dict directly. Not awaiting.")
+                tree_data = json_result
+            print(f"DEBUG: Type of tree_data: {type(tree_data)}")
 
             files = {
                 item["path"]: {
