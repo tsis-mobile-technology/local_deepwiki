@@ -1,0 +1,21 @@
+{
+  "project_info": {
+    "name": "local_deepwiki",
+    "description": "Local DeepWiki Documentation Generator",
+    "main_language": "python"
+  },
+  "components": {},
+  "dependencies": [],
+  "structure": {
+    "layers": [],
+    "patterns": [],
+    "complexity": "low"
+  },
+  "metrics": {
+    "total_components": 0,
+    "total_dependencies": 0,
+    "dependency_density": 0,
+    "most_depended_component": "none",
+    "max_dependency_count": 0
+  }
+}
